@@ -33,5 +33,20 @@ export const signInWithEmail = async (email, password) => {
     email,
     password
   });
+
+  if (data?.user) {
+    // Fetch user role from user_profile table
+    const { data: profile } = await supabase
+      .from('user_profile')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
+    
+    if (profile) {
+      data.user.user_metadata = data.user.user_metadata || {};
+      data.user.user_metadata.role = profile.role;
+    }
+  }
+
   return { data, error };
 };
