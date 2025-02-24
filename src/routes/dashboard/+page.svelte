@@ -30,7 +30,7 @@
     if (userData) {
       userEmail = userData.userEmail;
       userRole = userData.userRole;
-      loading = false;
+      loading = userData.loading;
     }
   });
 
@@ -50,35 +50,38 @@
   const months = getAvailableMonths();
 </script>
 
-<div class="min-h-screen bg-gray-100">
-  {#if !loading}
-    <Sidebar {userEmail} {userRole}/>
-    <div class="ml-64 p-6">
-      <div class="max-w-7xl mx-auto">
-        <!-- Header with Month Selector -->
-        <div class="flex justify-between items-center mb-8">
-          <div class="flex-1">
-            <h1 class="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
-            <p class="text-gray-500">{userEmail}</p>
-          </div>
-          <div class="flex items-center gap-4">
-            <select
-              bind:value={selectedMonth}
-              class="block w-48 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#289CD7] focus:border-[#289CD7]"
-            >
-              {#each months as month}
-                <option value={month}>{month}</option>
-              {/each}
-            </select>
-            <button
-              on:click={handleLogout}
-              class="px-4 py-2 text-sm font-medium text-white bg-[#289CD7] rounded-md hover:bg-[#1e7ba8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#289CD7]"
-            >
-              Logout
-            </button>
-          </div>
+<div class="min-h-screen bg-gray-100 ml-64">
+  <div class="p-4 sm:p-6 md:p-8">
+    <div class="max-w-full mx-auto">
+      <!-- Header with Month Selector -->
+      <div class="flex justify-between items-center mb-8">
+        <div class="flex-1">
+          <h1 class="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
+          <p class="text-gray-500">{userEmail}</p>
         </div>
+        <div class="flex items-center gap-4">
+          <select
+            bind:value={selectedMonth}
+            class="block w-48 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#289CD7] focus:border-[#289CD7]"
+          >
+            {#each months as month}
+              <option value={month}>{month}</option>
+            {/each}
+          </select>
+          <button
+            on:click={handleLogout}
+            class="px-4 py-2 text-sm font-medium text-white bg-[#289CD7] rounded-md hover:bg-[#1e7ba8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#289CD7]"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
+      {#if loading}
+        <div class="text-center py-12">
+          <p class="text-lg text-gray-600">Loading dashboard data...</p>
+        </div>
+      {:else}
         <!-- Financial Overview Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6">
@@ -137,11 +140,7 @@
             </div>
           </div>
         </div>
-      </div>
+      {/if}
     </div>
-  {:else}
-    <div class="flex items-center justify-center min-h-screen">
-      <p class="text-lg text-gray-600">Loading...</p>
-    </div>
-  {/if}
+  </div>
 </div>

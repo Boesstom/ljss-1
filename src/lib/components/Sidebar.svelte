@@ -46,27 +46,27 @@
       href: '/invoices',
       icon: FileText,
       text: 'Invoice',
-      visible: isManager || isCS
+      visible: true
     },
     {
       type: 'single',
       href: '/employees',
       icon: Users,
       text: 'Data Pegawai',
-      visible: isManager
+      visible: true
     },
     {
       type: 'single',
       href: '/expenses',
       icon: DollarSign,
       text: 'Pengeluaran',
-      visible: isManager
+      visible: true
     },
     {
       type: 'accordion',
       text: 'Finance',
       icon: Calculator,
-      visible: isManager || isAdmin,
+      visible: true,
       children: [
         {
           href: '/finance/order-calculation',
@@ -149,7 +149,7 @@
           visible: true
         },
         {
-          href: '/master/documents',
+          href: '/master/document',
           icon: FileCheck,
           text: 'Data Dokumen',
           visible: true
