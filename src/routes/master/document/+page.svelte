@@ -2,63 +2,62 @@
   import { onMount } from 'svelte';
   import { Search, Plus, Pencil, Trash2 } from 'lucide-svelte';
   import Modal from '$lib/components/Modal.svelte';
+  import { supabase } from '$lib/supabase';
 
   // Primary color for buttons and highlights
   const primaryColor = '#289CD7';
-
-  // Data dummy untuk contoh
-  let documents = [
-    { id: 1, name: 'Surat Jalan' },
-    { id: 2, name: 'Invoice' },
-    { id: 3, name: 'Bill of Lading' },
-    { id: 4, name: 'Packing List' },
-    { id: 5, name: 'Certificate of Origin' },
-  ];
-
+  let documents = [];
   let showModal = false;
   let modalTitle = '';
   let currentDocument = {
     id: null,
-    name: ''
+    nama_data_dokumen: ''
   };
-
   // Variabel untuk paginasi dan pencarian
   let currentPage = 1;
   let itemsPerPage = 5;
   let searchQuery = '';
-
+  let itemsPerPageOptions = [5, 10, 25, 50, 100, 500, 1000];
   // Handler untuk paginasi
   $: totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
   $: paginatedDocuments = filteredDocuments.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   // Filter documents berdasarkan pencarian
   $: filteredDocuments = documents.filter(document =>
-    document.name.toLowerCase().includes(searchQuery.toLowerCase())
+    document.nama_data_dokumen.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  async function fetchDocuments() {
+    try {
+      const { data, error } = await supabase
+        .from('md_data_dokumen')
+        .select('*');
 
+      if (error) throw error;
+      documents = data;
+    } catch (error) {
+      console.error('Error fetching documents:', error.message);
+      alert('Error fetching documents');
+    }
+  }
   function nextPage() {
     if (currentPage < totalPages) currentPage++;
   }
-
   function prevPage() {
     if (currentPage > 1) currentPage--;
   }
-
   function openAddModal() {
     showModal = false;
     setTimeout(() => {
       modalTitle = 'Tambah Data Dokumen';
       currentDocument = {
         id: null,
-        name: ''
+        nama_data_dokumen: ''
       };
       showModal = true;
     }, 100);
   }
-
   function openEditModal(document) {
     showModal = false;
     setTimeout(() => {
@@ -67,35 +66,59 @@
       showModal = true;
     }, 100);
   }
-
-  function handleSubmit() {
-    if (!currentDocument.name) {
+  async function handleSubmit() {
+    if (!currentDocument.nama_data_dokumen) {
       alert('Nama dokumen harus diisi');
       return;
     }
+    try {
+      if (currentDocument.id === null) {
+        // Add new document
+        const { data, error } = await supabase
+          .from('md_data_dokumen')
+          .insert([{ nama_data_dokumen: currentDocument.nama_data_dokumen }])
+          .select();
 
-    if (currentDocument.id === null) {
-      // Add new document
-      const newDocument = {
-        ...currentDocument,
-        id: documents.length + 1
-      };
-      documents = [...documents, newDocument];
-    } else {
-      // Update existing document
-      documents = documents.map(d =>
-        d.id === currentDocument.id ? currentDocument : d
-      );
+        if (error) throw error;
+        documents = [...documents, data[0]];
+      } else {
+        // Update existing document
+        const { error } = await supabase
+          .from('md_data_dokumen')
+          .update({ nama_data_dokumen: currentDocument.nama_data_dokumen })
+          .eq('id', currentDocument.id);
+
+        if (error) throw error;
+        documents = documents.map(d =>
+          d.id === currentDocument.id ? currentDocument : d
+        );
+      }
+      showModal = false;
+    } catch (error) {
+      console.error('Error saving document:', error.message);
+      alert('Error saving document');
     }
-    showModal = false;
   }
-
-  function handleDelete(id) {
+  async function handleDelete(id) {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      documents = documents.filter(d => d.id !== id);
-      currentPage = Math.min(currentPage, Math.ceil(documents.length / itemsPerPage));
+      try {
+        const { error } = await supabase
+          .from('md_data_dokumen')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        documents = documents.filter(d => d.id !== id);
+        currentPage = Math.min(currentPage, Math.ceil(documents.length / itemsPerPage));
+      } catch (error) {
+        console.error('Error deleting document:', error.message);
+        alert('Error deleting document');
+      }
     }
   }
+  onMount(() => {
+    fetchDocuments();
+  });
 </script>
 
 <div class="min-h-screen bg-gray-100 ml-64">
@@ -153,7 +176,7 @@
               {#each paginatedDocuments as document, i}
                 <tr class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{(currentPage - 1) * itemsPerPage + i + 1}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{document.name}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{document.nama_data_dokumen}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div class="flex gap-3">
                       <button
@@ -182,6 +205,18 @@
       {#if filteredDocuments.length > 0}
         <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200">
           <div class="flex items-center text-sm text-gray-700">
+            <p class="mr-4">
+              Show
+              <select
+                bind:value={itemsPerPage}
+                class="mx-2 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
+              >
+                {#each itemsPerPageOptions as option}
+                  <option value={option}>{option}</option>
+                {/each}
+              </select>
+              entries
+            </p>
             <p>
               Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredDocuments.length)} of {filteredDocuments.length} entries
             </p>
@@ -218,7 +253,7 @@
       <input
         type="text"
         id="name"
-        bind:value={currentDocument.name}
+        bind:value={currentDocument.nama_data_dokumen}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
       />

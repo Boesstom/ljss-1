@@ -2,72 +2,72 @@
   import { onMount } from 'svelte';
   import { Search, Plus, Pencil, Trash2 } from 'lucide-svelte';
   import Modal from '$lib/components/Modal.svelte';
+  import { supabase } from '$lib/supabase';
 
   // Primary color for buttons and highlights
   const primaryColor = '#289CD7';
-
-  // Data dummy untuk contoh
-  let trucks = [
-    { id: 1, nopol: 'B 1234 ABC', driver: 'John Doe', vendor: 'PT Transport A', phone: '081234567890' },
-    { id: 2, nopol: 'B 5678 DEF', driver: 'Jane Smith', vendor: 'PT Transport B', phone: '081234567891' },
-    { id: 3, nopol: 'B 9012 GHI', driver: 'Mike Johnson', vendor: 'PT Transport C', phone: '081234567892' },
-    { id: 4, nopol: 'B 3456 JKL', driver: 'Sarah Wilson', vendor: 'PT Transport D', phone: '081234567893' },
-    { id: 5, nopol: 'B 7890 MNO', driver: 'David Brown', vendor: 'PT Transport E', phone: '081234567894' },
-  ];
-
+  let trucks = [];
   let showModal = false;
   let modalTitle = '';
   let currentTruck = {
-    id: null,
-    nopol: '',
-    driver: '',
-    vendor: '',
-    phone: ''
+    id_md_data_truck: null,
+    nopol_data_truck: '',
+    driver_data_truck: '',
+    nama_vendor_data_truck: '',
+    telepon_data_truck: '',
+    alamat_data_truck: ''
   };
-
   // Variabel untuk paginasi dan pencarian
   let currentPage = 1;
   let itemsPerPage = 5;
   let searchQuery = '';
-
+  let itemsPerPageOptions = [5, 10, 25, 50, 100, 500, 1000];
   // Handler untuk paginasi
   $: totalPages = Math.ceil(filteredTrucks.length / itemsPerPage);
   $: paginatedTrucks = filteredTrucks.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   // Filter trucks berdasarkan pencarian
   $: filteredTrucks = trucks.filter(truck =>
-    truck.nopol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    truck.driver.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    truck.vendor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    truck.phone.toLowerCase().includes(searchQuery.toLowerCase())
+    truck.nopol_data_truck.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    truck.driver_data_truck.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    truck.nama_vendor_data_truck.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  async function fetchTrucks() {
+    try {
+      const { data, error } = await supabase
+        .from('md_data_truck')
+        .select('*');
 
+      if (error) throw error;
+      trucks = data;
+    } catch (error) {
+      console.error('Error fetching trucks:', error.message);
+      alert('Error fetching trucks');
+    }
+  }
   function nextPage() {
     if (currentPage < totalPages) currentPage++;
   }
-
   function prevPage() {
     if (currentPage > 1) currentPage--;
   }
-
   function openAddModal() {
     showModal = false;
     setTimeout(() => {
       modalTitle = 'Tambah Data Truck';
       currentTruck = {
-        id: null,
-        nopol: '',
-        driver: '',
-        vendor: '',
-        phone: ''
+        id_md_data_truck: null,
+        nopol_data_truck: '',
+        driver_data_truck: '',
+        nama_vendor_data_truck: '',
+        telepon_data_truck: '',
+        alamat_data_truck: ''
       };
       showModal = true;
     }, 100);
   }
-
   function openEditModal(truck) {
     showModal = false;
     setTimeout(() => {
@@ -76,35 +76,73 @@
       showModal = true;
     }, 100);
   }
-
-  function handleSubmit() {
-    if (!currentTruck.nopol || !currentTruck.driver || !currentTruck.vendor || !currentTruck.phone) {
+  async function handleSubmit() {
+    if (!currentTruck.nopol_data_truck || !currentTruck.driver_data_truck || 
+        !currentTruck.nama_vendor_data_truck || !currentTruck.telepon_data_truck || 
+        !currentTruck.alamat_data_truck) {
       alert('Semua field harus diisi');
       return;
     }
+    try {
+      if (currentTruck.id_md_data_truck === null) {
+        // Add new truck
+        const { data, error } = await supabase
+          .from('md_data_truck')
+          .insert([{
+            nopol_data_truck: currentTruck.nopol_data_truck,
+            driver_data_truck: currentTruck.driver_data_truck,
+            nama_vendor_data_truck: currentTruck.nama_vendor_data_truck,
+            telepon_data_truck: currentTruck.telepon_data_truck,
+            alamat_data_truck: currentTruck.alamat_data_truck
+          }])
+          .select();
 
-    if (currentTruck.id === null) {
-      // Add new truck
-      const newTruck = {
-        ...currentTruck,
-        id: trucks.length + 1
-      };
-      trucks = [...trucks, newTruck];
-    } else {
-      // Update existing truck
-      trucks = trucks.map(t =>
-        t.id === currentTruck.id ? currentTruck : t
-      );
+        if (error) throw error;
+        trucks = [...trucks, data[0]];
+      } else {
+        // Update existing truck
+        const { error } = await supabase
+          .from('md_data_truck')
+          .update({
+            nopol_data_truck: currentTruck.nopol_data_truck,
+            driver_data_truck: currentTruck.driver_data_truck,
+            nama_vendor_data_truck: currentTruck.nama_vendor_data_truck,
+            telepon_data_truck: currentTruck.telepon_data_truck,
+            alamat_data_truck: currentTruck.alamat_data_truck
+          })
+          .eq('id_md_data_truck', currentTruck.id_md_data_truck);
+
+        if (error) throw error;
+        trucks = trucks.map(t =>
+          t.id_md_data_truck === currentTruck.id_md_data_truck ? currentTruck : t
+        );
+      }
+      showModal = false;
+    } catch (error) {
+      console.error('Error saving truck:', error.message);
+      alert('Error saving truck');
     }
-    showModal = false;
   }
-
-  function handleDelete(id) {
+  async function handleDelete(id) {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      trucks = trucks.filter(t => t.id !== id);
-      currentPage = Math.min(currentPage, Math.ceil(trucks.length / itemsPerPage));
+      try {
+        const { error } = await supabase
+          .from('md_data_truck')
+          .delete()
+          .eq('id_md_data_truck', id);
+
+        if (error) throw error;
+        trucks = trucks.filter(t => t.id_md_data_truck !== id);
+        currentPage = Math.min(currentPage, Math.ceil(trucks.length / itemsPerPage));
+      } catch (error) {
+        console.error('Error deleting truck:', error.message);
+        alert('Error deleting truck');
+      }
     }
   }
+  onMount(() => {
+    fetchTrucks();
+  });
 </script>
 
 <div class="min-h-screen bg-gray-100 ml-64">
@@ -151,24 +189,26 @@
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">No.</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Nopol</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Driver</th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Nama Vendor</th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Telfon</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Vendor</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Telepon</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Alamat</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             {#if filteredTrucks.length === 0}
               <tr>
-                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-900">No trucks found</td>
+                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-900">No trucks found</td>
               </tr>
             {:else}
               {#each paginatedTrucks as truck, i}
                 <tr class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{(currentPage - 1) * itemsPerPage + i + 1}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{truck.nopol}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{truck.driver}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{truck.vendor}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{truck.phone}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{truck.nopol_data_truck}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{truck.driver_data_truck}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{truck.nama_vendor_data_truck}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{truck.telepon_data_truck}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{truck.alamat_data_truck}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div class="flex gap-3">
                       <button
@@ -179,7 +219,7 @@
                         <Pencil size={18} />
                       </button>
                       <button
-                        on:click={() => handleDelete(truck.id)}
+                        on:click={() => handleDelete(truck.id_md_data_truck)}
                         class="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
                       >
                         <Trash2 size={18} />
@@ -197,6 +237,18 @@
       {#if filteredTrucks.length > 0}
         <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200">
           <div class="flex items-center text-sm text-gray-700">
+            <p class="mr-4">
+              Show
+              <select
+                bind:value={itemsPerPage}
+                class="mx-2 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
+              >
+                {#each itemsPerPageOptions as option}
+                  <option value={option}>{option}</option>
+                {/each}
+              </select>
+              entries
+            </p>
             <p>
               Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTrucks.length)} of {filteredTrucks.length} entries
             </p>
@@ -233,7 +285,7 @@
       <input
         type="text"
         id="nopol"
-        bind:value={currentTruck.nopol}
+        bind:value={currentTruck.nopol_data_truck}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
       />
@@ -243,27 +295,37 @@
       <input
         type="text"
         id="driver"
-        bind:value={currentTruck.driver}
+        bind:value={currentTruck.driver_data_truck}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
       />
     </div>
     <div>
-      <label for="vendor" class="block text-sm font-medium text-gray-700 mb-1">Nama Vendor</label>
+      <label for="vendor" class="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
       <input
         type="text"
         id="vendor"
-        bind:value={currentTruck.vendor}
+        bind:value={currentTruck.nama_vendor_data_truck}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
       />
     </div>
     <div>
-      <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Telfon</label>
+      <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
       <input
         type="tel"
         id="phone"
-        bind:value={currentTruck.phone}
+        bind:value={currentTruck.telepon_data_truck}
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
+        required
+      />
+    </div>
+    <div>
+      <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+      <input
+        type="text"
+        id="address"
+        bind:value={currentTruck.alamat_data_truck}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
       />

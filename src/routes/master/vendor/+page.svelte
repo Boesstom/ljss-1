@@ -2,33 +2,26 @@
   import { onMount } from 'svelte';
   import { Search, Plus, Pencil, Trash2 } from 'lucide-svelte';
   import Modal from '$lib/components/Modal.svelte';
+  import { supabase } from '$lib/supabase';
 
   // Primary color for buttons and highlights
   const primaryColor = '#289CD7';
-
-  // Data dummy untuk contoh
-  let vendors = [
-    { id: 1, name: 'PT Vendor A', address: 'Jl. Vendor A No. 123', documentType: 'SIUP' },
-    { id: 2, name: 'PT Vendor B', address: 'Jl. Vendor B No. 456', documentType: 'TDP' },
-    { id: 3, name: 'PT Vendor C', address: 'Jl. Vendor C No. 789', documentType: 'NPWP' },
-    { id: 4, name: 'PT Vendor D', address: 'Jl. Vendor D No. 321', documentType: 'SIUP' },
-    { id: 5, name: 'PT Vendor E', address: 'Jl. Vendor E No. 654', documentType: 'TDP' },
-  ];
-
+  let vendors = [];
   let showModal = false;
   let modalTitle = '';
   let currentVendor = {
-    id: null,
-    name: '',
-    address: '',
-    documentType: ''
+    id_data_vendor: null,
+    nama_data_vendor: '',
+    alamat_data_vendor: '',
+    telepon_data_vendor: '',
+    jenis_dokumen_data_vendor: ''
   };
 
   // Variabel untuk paginasi dan pencarian
   let currentPage = 1;
   let itemsPerPage = 5;
   let searchQuery = '';
-
+  let itemsPerPageOptions = [5, 10, 25, 50, 100, 500, 1000];
   // Handler untuk paginasi
   $: totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
   $: paginatedVendors = filteredVendors.slice(
@@ -38,10 +31,24 @@
 
   // Filter vendors berdasarkan pencarian
   $: filteredVendors = vendors.filter(vendor =>
-    vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    vendor.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    vendor.documentType.toLowerCase().includes(searchQuery.toLowerCase())
+    vendor.nama_data_vendor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vendor.alamat_data_vendor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vendor.jenis_dokumen_data_vendor.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  async function fetchVendors() {
+    try {
+      const { data, error } = await supabase
+        .from('md_data_vendor')
+        .select('*');
+
+      if (error) throw error;
+      vendors = data;
+    } catch (error) {
+      console.error('Error fetching vendors:', error.message);
+      alert('Error fetching vendors');
+    }
+  }
 
   function nextPage() {
     if (currentPage < totalPages) currentPage++;
@@ -56,10 +63,11 @@
     setTimeout(() => {
       modalTitle = 'Tambah Data Vendor';
       currentVendor = {
-        id: null,
-        name: '',
-        address: '',
-        documentType: ''
+        id_data_vendor: null,
+        nama_data_vendor: '',
+        alamat_data_vendor: '',
+        telepon_data_vendor: '',
+        jenis_dokumen_data_vendor: ''
       };
       showModal = true;
     }, 100);
@@ -74,34 +82,73 @@
     }, 100);
   }
 
-  function handleSubmit() {
-    if (!currentVendor.name || !currentVendor.address || !currentVendor.documentType) {
+  async function handleSubmit() {
+    if (!currentVendor.nama_data_vendor || !currentVendor.alamat_data_vendor || 
+        !currentVendor.telepon_data_vendor || !currentVendor.jenis_dokumen_data_vendor) {
       alert('Semua field harus diisi');
       return;
     }
 
-    if (currentVendor.id === null) {
-      // Add new vendor
-      const newVendor = {
-        ...currentVendor,
-        id: vendors.length + 1
-      };
-      vendors = [...vendors, newVendor];
-    } else {
-      // Update existing vendor
-      vendors = vendors.map(v =>
-        v.id === currentVendor.id ? currentVendor : v
-      );
+    try {
+      if (currentVendor.id_data_vendor === null) {
+        // Add new vendor
+        const { data, error } = await supabase
+          .from('md_data_vendor')
+          .insert([{
+            nama_data_vendor: currentVendor.nama_data_vendor,
+            alamat_data_vendor: currentVendor.alamat_data_vendor,
+            telepon_data_vendor: currentVendor.telepon_data_vendor,
+            jenis_dokumen_data_vendor: currentVendor.jenis_dokumen_data_vendor
+          }])
+          .select();
+
+        if (error) throw error;
+        vendors = [...vendors, data[0]];
+      } else {
+        // Update existing vendor
+        const { error } = await supabase
+          .from('md_data_vendor')
+          .update({
+            nama_data_vendor: currentVendor.nama_data_vendor,
+            alamat_data_vendor: currentVendor.alamat_data_vendor,
+            telepon_data_vendor: currentVendor.telepon_data_vendor,
+            jenis_dokumen_data_vendor: currentVendor.jenis_dokumen_data_vendor
+          })
+          .eq('id_data_vendor', currentVendor.id_data_vendor);
+
+        if (error) throw error;
+        vendors = vendors.map(v =>
+          v.id_data_vendor === currentVendor.id_data_vendor ? currentVendor : v
+        );
+      }
+      showModal = false;
+    } catch (error) {
+      console.error('Error saving vendor:', error.message);
+      alert('Error saving vendor');
     }
-    showModal = false;
   }
 
-  function handleDelete(id) {
+  async function handleDelete(id) {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      vendors = vendors.filter(v => v.id !== id);
-      currentPage = Math.min(currentPage, Math.ceil(vendors.length / itemsPerPage));
+      try {
+        const { error } = await supabase
+          .from('md_data_vendor')
+          .delete()
+          .eq('id_data_vendor', id);
+
+        if (error) throw error;
+        vendors = vendors.filter(v => v.id_data_vendor !== id);
+        currentPage = Math.min(currentPage, Math.ceil(vendors.length / itemsPerPage));
+      } catch (error) {
+        console.error('Error deleting vendor:', error.message);
+        alert('Error deleting vendor');
+      }
     }
   }
+
+  onMount(() => {
+    fetchVendors();
+  });
 </script>
 
 <div class="min-h-screen bg-gray-100 ml-64">
@@ -148,6 +195,7 @@
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">No.</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Nama</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Alamat</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Telepon</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Jenis Dokumen</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
             </tr>
@@ -155,15 +203,16 @@
           <tbody class="divide-y divide-gray-200">
             {#if filteredVendors.length === 0}
               <tr>
-                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-900">No vendors found</td>
+                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-900">No vendors found</td>
               </tr>
             {:else}
               {#each paginatedVendors as vendor, i}
                 <tr class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{(currentPage - 1) * itemsPerPage + i + 1}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{vendor.name}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{vendor.address}</td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{vendor.documentType}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{vendor.nama_data_vendor}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{vendor.alamat_data_vendor}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{vendor.telepon_data_vendor}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{vendor.jenis_dokumen_data_vendor}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div class="flex gap-3">
                       <button
@@ -174,7 +223,7 @@
                         <Pencil size={18} />
                       </button>
                       <button
-                        on:click={() => handleDelete(vendor.id)}
+                        on:click={() => handleDelete(vendor.id_data_vendor)}
                         class="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
                       >
                         <Trash2 size={18} />
@@ -192,6 +241,18 @@
       {#if filteredVendors.length > 0}
         <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200">
           <div class="flex items-center text-sm text-gray-700">
+            <p class="mr-4">
+              Show
+              <select
+                bind:value={itemsPerPage}
+                class="mx-2 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
+              >
+                {#each itemsPerPageOptions as option}
+                  <option value={option}>{option}</option>
+                {/each}
+              </select>
+              entries
+            </p>
             <p>
               Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredVendors.length)} of {filteredVendors.length} entries
             </p>
@@ -224,11 +285,11 @@
 <Modal show={showModal} title={modalTitle}>
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
     <div>
-      <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+      <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama Vendor</label>
       <input
         type="text"
         id="name"
-        bind:value={currentVendor.name}
+        bind:value={currentVendor.nama_data_vendor}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
       />
@@ -237,21 +298,35 @@
       <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
       <textarea
         id="address"
-        bind:value={currentVendor.address}
-        rows="3"
+        bind:value={currentVendor.alamat_data_vendor}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
+        rows="3"
       ></textarea>
     </div>
     <div>
-      <label for="documentType" class="block text-sm font-medium text-gray-700 mb-1">Jenis Dokumen</label>
+      <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
       <input
-        type="text"
-        id="documentType"
-        bind:value={currentVendor.documentType}
+        type="tel"
+        id="phone"
+        bind:value={currentVendor.telepon_data_vendor}
         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
         required
       />
+    </div>
+    <div>
+      <label for="documentType" class="block text-sm font-medium text-gray-700 mb-1">Jenis Dokumen</label>
+      <select
+        id="documentType"
+        bind:value={currentVendor.jenis_dokumen_data_vendor}
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#289CD7] focus:border-transparent"
+        required
+      >
+        <option value="">Pilih Jenis Dokumen</option>
+        <option value="SIUP">SIUP</option>
+        <option value="TDP">TDP</option>
+        <option value="NPWP">NPWP</option>
+      </select>
     </div>
     <div class="flex justify-end gap-4 mt-6">
       <button
