@@ -1,26 +1,28 @@
 <script>
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import '../app.css';
-	import { userStore } from '$lib/stores/authStore';
 	import { page } from '$app/stores';
+	import { getUser } from '$lib/auth/login';
+	import { onMount } from 'svelte';
 
-	export let data;
-	
-	// Update store ketika data berubah
-	$: if (data?.user) {
-		userStore.set({
-			email: data.user.email || '',
-			role: data.user.role || ''
-		});
-	}
+	let userEmail = '';
+	let userRole = '';
 
 	// Check if current page is login
 	$: isLoginPage = $page.url.pathname === '/login';
+
+	onMount(async () => {
+		const user = await getUser();
+		if (user) {
+			userEmail = user.email;
+			userRole = user.user_metadata?.role || '';
+		}
+	});
 </script>
 
 {#if !isLoginPage}
 	<div class="flex">
-		<Sidebar userEmail={$userStore.email} userRole={$userStore.role} />
+		<Sidebar {userEmail} {userRole} />
 		<main class="flex-1 bg-gray-100 min-h-screen">
 			<slot />
 		</main>

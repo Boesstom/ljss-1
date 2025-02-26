@@ -1,6 +1,17 @@
 import { supabase } from '../supabase';
 
+let cachedUser = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+
 export const getUser = async () => {
+  const currentTime = Date.now();
+  
+  // Return cached user if valid
+  if (cachedUser && (currentTime - lastFetchTime) < CACHE_DURATION) {
+    return cachedUser;
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
     // Fetch user role from user_profile table
@@ -14,6 +25,10 @@ export const getUser = async () => {
       user.user_metadata = user.user_metadata || {};
       user.user_metadata.role = profile.role;
     }
+
+    // Update cache
+    cachedUser = user;
+    lastFetchTime = currentTime;
   }
   return user;
 };

@@ -22,9 +22,9 @@
   export let userEmail = '';
   export let userRole = '';
 
-  const isAdmin = userRole === 'admin' || userEmail === 'admin@ljss.com';
-  const isManager = userRole === 'manager' || userEmail === 'manager@ljss.com';
-  const isCS = userRole === 'cs' || userEmail === 'cs@ljss.com';
+  const isAdmin = userRole === 'Admin';
+  const isManager = userRole === 'Manager';
+  const isCS = userRole === 'CS';
 
   const navigationItems = [
     {
@@ -167,8 +167,14 @@
 
 <aside class="w-64 h-screen bg-white border-r border-gray-200 fixed left-0 top-0 overflow-y-auto">
   <div class="p-4">
-    <div class="flex items-center justify-center mb-8">
-      <img src="/LOGO-LJSS.png" alt="LJSS Logo" class="h-8" />
+    <div class="flex flex-col items-center justify-center mb-8">
+      <img src="/LOGO-LJSS.png" alt="LJSS Logo" class="h-8 mb-2" />
+      {#if userEmail}
+        <div class="text-center">
+          <p class="text-sm text-gray-600">{userEmail}</p>
+          <p class="text-xs text-gray-500">{userRole}</p>
+        </div>
+      {/if}
     </div>
 
     <nav class="space-y-2">

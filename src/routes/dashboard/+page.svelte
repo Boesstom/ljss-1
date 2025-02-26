@@ -4,9 +4,11 @@
   import Sidebar from '$lib/components/Sidebar.svelte';
 
   const dashboard = initDashboard();
-  let userEmail = '';
+  
   let userRole = '';
+  let userEmail = '';
   let loading = true;
+  let error = null;
   let selectedMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
 
   // Financial data (to be integrated with actual data)
@@ -26,11 +28,16 @@
   };
 
   onMount(async () => {
-    const userData = await dashboard.loadUserData();
-    if (userData) {
-      userEmail = userData.userEmail;
-      userRole = userData.userRole;
-      loading = userData.loading;
+    try {
+      const userData = await dashboard.loadUserData();
+      if (userData) {
+        userEmail = userData.userEmail;
+        userRole = userData.userRole;
+        loading = false;
+      }
+    } catch (e) {
+      error = e.message;
+      loading = false;
     }
   });
 
@@ -57,7 +64,7 @@
       <div class="flex justify-between items-center mb-8">
         <div class="flex-1">
           <h1 class="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
-          <p class="text-gray-500">{userEmail}</p>
+          
         </div>
         <div class="flex items-center gap-4">
           <select
