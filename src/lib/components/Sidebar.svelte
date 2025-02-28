@@ -16,7 +16,8 @@
     PiggyBank,
     Package,
     BadgeDollarSign,
-    Database
+    Database,
+    CreditCard
   } from 'lucide-svelte';
 
   export let userEmail = '';
@@ -105,13 +106,13 @@
           visible: true
         },
         {
-          href: '/finance/inventory',
+          href: '/finance/inventaris',
           icon: Package,
           text: 'Inventaris',
           visible: true
         },
         {
-          href: '/finance/tax',
+          href: '/finance/pajak',
           icon: BadgeDollarSign,
           text: 'Pajak',
           visible: true
@@ -158,6 +159,12 @@
           href: '/master/vendor',
           icon: Warehouse,
           text: 'Data Vendor',
+          visible: true
+        },
+        {
+          href: '/master/rekening',
+          icon: CreditCard,
+          text: 'Data Rekening',
           visible: true
         }
       ]
