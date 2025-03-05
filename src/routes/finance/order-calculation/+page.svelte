@@ -1,8 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { Search, Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-svelte';
-  import { goto } from '$app/navigation';
-  import OrderForm from '$lib/components/OrderForm.svelte';
+  import { Search, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2 } from 'lucide-svelte';
+  import OrderCalculationModal from '$lib/components/OrderCalculationModal.svelte';
 
   // Primary color for buttons and highlights
   const primaryColor = '#289CD7';
@@ -45,15 +44,6 @@
       stuffingDate: '2024-01-19'
     },
   ];
-
-  let isAddingOrder = false;
-  let currentOrder = {
-    id: null,
-    invoiceShipper: '',
-    jobNumber: '',
-    shipper: '',
-    stuffingDate: ''
-  };
 
   // Variabel untuk paginasi dan pencarian
   let currentPage = 1;
@@ -106,73 +96,31 @@
     if (currentPage > 1) currentPage--;
   }
 
-  function openAddOrder() {
-    currentOrder = {
-      id: null,
-      invoiceShipper: '',
-      jobNumber: '',
-      shipper: '',
-      stuffingDate: ''
-    };
-    isAddingOrder = true;
+  let showModal = false;
+  let selectedOrder = null;
+
+  function handleEdit(order) {
+    selectedOrder = order;
+    showModal = true;
   }
 
-  function openEditOrder(order) {
-    currentOrder = { ...order };
-    isAddingOrder = true;
-  }
-
-  function handleSubmit() {
-    if (!currentOrder.invoiceShipper || !currentOrder.jobNumber || !currentOrder.shipper || !currentOrder.stuffingDate) {
-      alert('Semua field harus diisi');
-      return;
-    }
-
-    if (currentOrder.id === null) {
-      // Add new order
-      const newOrder = {
-        ...currentOrder,
-        id: orders.length + 1
-      };
-      orders = [...orders, newOrder];
-    } else {
-      // Update existing order
-      orders = orders.map(o =>
-        o.id === currentOrder.id ? currentOrder : o
-      );
-    }
-    isAddingOrder = false;
-  }
-
-  function handleDelete(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      orders = orders.filter(o => o.id !== id);
-      currentPage = Math.min(currentPage, Math.ceil(orders.length / itemsPerPage));
-    }
+  function handleDelete(order) {
+    // TODO: Implement delete functionality
+    console.log('Delete order:', order);
   }
 </script>
 
-{#if !isAddingOrder}
 <div class="min-h-screen bg-gray-100 ml-64">
   <div class="p-4 sm:p-6 md:p-8">
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-2xl font-semibold text-gray-900">Data Order</h1>
-      <p class="text-gray-600 mt-1">Kelola data order anda</p>
+      <h1 class="text-2xl font-semibold text-gray-900">Order Calculation</h1>
+      <p class="text-gray-600 mt-1">Lihat perhitungan order</p>
     </div>
 
     <!-- Header Actions -->
     <div class="bg-white rounded-lg p-6 shadow-sm mb-6">
-      <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <button
-          on:click={openAddOrder}
-          style="background-color: {primaryColor}"
-          class="text-white px-4 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition-colors w-full sm:w-auto font-medium"
-        >
-          <Plus size={20} />
-          <span>Tambah Order</span>
-        </button>
-
+      <div class="flex justify-end">
         <div class="relative w-full sm:w-64">
           <input
             type="text"
@@ -225,7 +173,7 @@
                   {/if}
                 </div>
               </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
+              <th class="px-6 py-4 text-center text-xs font-medium text-white uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
@@ -241,20 +189,20 @@
                   <td class="px-6 py-4 text-sm text-gray-900">{order.jobNumber}</td>
                   <td class="px-6 py-4 text-sm text-gray-900">{order.shipper}</td>
                   <td class="px-6 py-4 text-sm text-gray-900">{order.stuffingDate}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div class="flex gap-3">
+                  <td class="px-6 py-4 text-sm text-gray-900">
+                    <div class="flex justify-center space-x-2">
                       <button
-                        on:click={() => openEditOrder(order)}
-                        style="background-color: {primaryColor}"
-                        class="p-2 rounded-lg text-white hover:opacity-80 transition-colors"
+                        on:click={() => handleEdit(order)}
+                        class="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                        style="color: {primaryColor};"
                       >
-                        <Pencil size={18} />
+                        <Pencil size={16} />
                       </button>
                       <button
-                        on:click={() => handleDelete(order.id)}
-                        class="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                        on:click={() => handleDelete(order)}
+                        class="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-red-600"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -295,11 +243,12 @@
       {/if}
     </div>
   </div>
+
+  {#if showModal && selectedOrder}
+    <OrderCalculationModal
+      {showModal}
+      order={selectedOrder}
+      onClose={() => showModal = false}
+    />
+  {/if}
 </div>
-{:else}
-<OrderForm
-  {currentOrder}
-  onSubmit={handleSubmit}
-  onCancel={() => (isAddingOrder = false)}
-/>
-{/if}

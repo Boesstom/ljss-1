@@ -44,13 +44,6 @@
     },
     {
       type: 'single',
-      href: '/invoices',
-      icon: FileText,
-      text: 'Invoice',
-      visible: true
-    },
-    {
-      type: 'single',
       href: '/employees',
       icon: Users,
       text: 'Data Pegawai',
@@ -70,6 +63,12 @@
       visible: true,
       children: [
         {
+          href: '/finance/invoice',
+          icon: FileText,
+          text: 'Invoice',
+          visible: true
+        },
+        {
           href: '/finance/order-calculation',
           icon: Calculator,
           text: 'Order Calculation',
@@ -79,12 +78,6 @@
           href: '/finance/direct-costs',
           icon: DollarSign,
           text: 'Biaya Langsung',
-          visible: true
-        },
-        {
-          href: '/finance/documents',
-          icon: FileCheck,
-          text: 'Data Dokumen',
           visible: true
         },
         {
